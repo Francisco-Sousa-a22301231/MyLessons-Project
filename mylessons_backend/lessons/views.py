@@ -366,6 +366,39 @@ def lesson_details(request, id):
     return Response(data)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_lesson_extras(request):
+    # 1) grab lesson_id from the JSON payload
+    lesson_id = request.data.get('lesson_id')
+    if lesson_id is None:
+        return Response(
+            {'detail': 'Lesson ID not provided in request body.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 2) load your Lesson
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+    except Lesson.DoesNotExist:
+        return Response(
+            {'detail': f'Lesson with id={lesson_id} not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # 3) merge the rest of request.data into the JSONField
+    #    remove 'lesson_id' so we only merge the extras
+    payload = dict(request.data)
+    payload.pop('lesson_id', None)
+
+    current = lesson.extras or {}
+    current.update(payload)
+    lesson.extras = current
+    lesson.save(update_fields=['extras'])
+
+    return Response({'extras': lesson.extras}, status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def todays_lessons(request):
@@ -771,25 +804,6 @@ def schedule_multiple_lessons(request):
 # view students in timeframe
 # view instructors in timeframe
 # view payments in timeframe
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def update_lesson_extras(request):
-    # TODO all
-    """
-    Update lesson extras (booking equipment or extra students).
-    """
-    lesson_id = request.data.get("lesson_id")
-    if not lesson_id:
-        return Response({"error": "É necessário fornecer lesson_id"}, status=400)
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    data = request.data
-    try:
-        lesson.update_extras(data)  # Implement this method in your Lesson model.
-        return Response({"status": "extras updated"}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

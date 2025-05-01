@@ -23,4 +23,8 @@ urlpatterns = [
     path('pay_pack_debt/', pay_pack_debt, name='pay_pack_debt'),
     path('unschedulable_lessons/', unschedulable_lessons, name='unschedulable_lessons'),
     path('get_group_packs_from_a_lesson/', get_group_packs_from_a_lesson, name='get_group_packs_from_a_lesson'),
+    path('extras/',
+        update_lesson_extras,
+        name='update-lesson-extras'
+    ),
 ]

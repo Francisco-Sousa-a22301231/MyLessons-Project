@@ -9,6 +9,7 @@ import '../providers/school_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/contact_school_widget.dart';
 import '../widgets/handle_lesson_report.dart';
+import 'extras_modal.dart';
 import 'students_modal.dart';
 import 'subject_modal.dart'; // Ensure this file exports SubjectModal
 import 'location_modal.dart'; // Ensure this file exports LocationModal
@@ -566,6 +567,32 @@ class _LessonDetailsPageState extends State<LessonDetailsPage> {
                                                       );
                                                     },
                                                   );
+                                                }
+                                              } else if (label == "Extras") {
+                                                final bool? updated =
+                                                    await showModalBottomSheet<
+                                                        bool>(
+                                                  context: context,
+                                                  isScrollControlled: true,
+                                                  shape:
+                                                      const RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.vertical(
+                                                            top:
+                                                                Radius.circular(
+                                                                    16)),
+                                                  ),
+                                                  builder: (_) => ExtrasModal(
+                                                    lessonId: lessonId,
+                                                    subjectId: details['subject_id'],
+                                                    schoolId:
+                                                        details['school_id'],
+                                                  ),
+                                                );
+                                                if (updated == true) {
+                                                  await homeProvider
+                                                      .fetchData();
+                                                  _refreshLessonDetails();
                                                 }
                                               } else if (label == "Subject" &&
                                                   currentRole != "Parent") {

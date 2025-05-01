@@ -1,6 +1,7 @@
 import json
 from django.shortcuts import render, get_object_or_404
 from locations.models import Location
+from equipment.serializers import EquipmentSerializer
 from sports.models import Sport
 from payments.models import Payment
 from users.models import Instructor, Monitor, UserAccount
@@ -64,6 +65,22 @@ def get_services(request, school_id):
     school = get_object_or_404(School, pk=school_id)
     return Response(school.services, status=200)
 
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def get_equipments(request, school_id, subject_id):
+    """
+    GET /api/schools/<school_id>/equipments/?sport=<sport_id>
+    Returns the list of equipments for the specified school,
+    optionally filtered to only those used in a given sport.
+    """
+    school = get_object_or_404(School, pk=school_id)
+    qs = school.equipments.all()
+
+    if subject_id:
+        qs = qs.filter(sports__id=subject_id)
+
+    serializer = EquipmentSerializer(qs, many=True)
+    return Response(serializer.data, status=200)
 
 @permission_classes([IsAuthenticated])
 @api_view(['POST'])
@@ -217,6 +234,27 @@ def school_details_view(request):
 
     # Call the conflict verification method.
     conflict_message = school.check_payment_types_conflicts()
+    
+    equipment_list = []
+    for eq in school.equipments.all():
+        equipment_list.append({
+            'equipment_id':      eq.id,
+            'equipment_name':    eq.name,
+            'location_id':       eq.location.id if eq.location else None,
+            'location_name':     eq.location.name if eq.location else "",
+            'state':             eq.state or "",
+            'photo_url':         request.build_absolute_uri(eq.photo.url)
+                                   if eq.photo else "",
+            'size':              eq.size or "",
+            'is_for_kids':       eq.is_for_kids,
+            'description':       eq.description or "",
+            'brand':             eq.brand or "",
+            'subjects': [
+                {'id': s.id, 'name': s.name}
+                for s in eq.sports.all()
+            ],
+        })
+
 
     return Response({
         'success': True,
@@ -228,28 +266,21 @@ def school_details_view(request):
         'currency': school.currency,
         'locations': [
             {
-                'location_id': location.id,
-                'location_name': location.name,
-                'address': location.address or "",
+                'location_id': loc.id,
+                'location_name': loc.name,
+                'address': loc.address or "",
             }
-            for location in school.locations.all()
+            for loc in school.locations.all()
         ],
         'subjects': [
             {
-                'subject_id': subject.id,
-                'subject_name': subject.name,
+                'subject_id': subj.id,
+                'subject_name': subj.name,
             }
-            for subject in school.sports.all()
+            for subj in school.sports.all()
         ],
-        'equipment': [
-            {
-                'equipment_id': equipment.id,
-                'equipment_name': equipment.name,
-                'location': equipment.location or "",
-            }
-            for equipment in school.equipments.all()
-        ],
-        'critical_message': conflict_message
+        'equipment': equipment_list,
+        'critical_message': conflict_message,
     })
 
 
